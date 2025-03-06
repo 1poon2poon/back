@@ -77,7 +77,11 @@ export const purchaseETF = (req, res) => {
       // 캐시백 기록에 추가
       user.cashback.history.push({
         name: `${etfName} 구매`,
-        day: new Date().toLocaleDateString(),
+        day: new Date().toLocaleDateString("ko-KR", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
         time: time,
         change: -(price * quantity),
         finalPoints: user.cashback.points,
@@ -149,7 +153,11 @@ export const sellETF = (req, res) => {
       });
       user.cashback.history.push({
         name: `${etfName} 판매`,
-        day: new Date().toLocaleDateString(),
+        day: new Date().toLocaleDateString("ko-KR", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
         time: time,
         change: totalSaleAmount,
         finalPoints: user.cashback.points,
@@ -256,6 +264,38 @@ export const getInterestedETFs = (req, res) => {
       // 관심 ETF 목록이 없으면 빈 배열 반환
       const interestedETFs = user.invest.interestedETFs || [];
       return res.status(200).json(interestedETFs);
+    })
+    .catch((error) => {
+      console.error(error);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: error.message });
+      }
+    });
+};
+
+// 관심 투자 카테고리 추가 or 삭제(post) - body로 name, categories 입력 받음
+export const setInterestedCategory = (req, res) => {
+  const { name, categories } = req.body; // categories는 배열로 입력받음
+
+  // 입력값 유효성 검사
+  if (!name || !Array.isArray(categories) || categories.length === 0) {
+    return res
+      .status(400)
+      .json({ error: "잘못된 입력입니다. 유효한 이름과 카테고리 배열을 입력하세요." });
+  }
+
+  User.findOne({ name: name })
+    .populate("invest")
+    .then((user) => {
+      if (!user) {
+        return res.status(404).json({ error: "해당 유저가 존재하지 않습니다." });
+      }
+
+      user.invest.category = categories;
+
+      return user.invest.save().then(() => {
+        return res.status(200).json({ message: "관심 카테고리 목록이 업데이트되었습니다." });
+      });
     })
     .catch((error) => {
       console.error(error);

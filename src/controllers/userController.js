@@ -196,7 +196,11 @@ export const setCashbackPoint = (req, res) => {
       });
       user.cashback.history.push({
         name: origin,
-        day: new Date().toLocaleDateString(),
+        day: new Date().toLocaleDateString("ko-KR", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
         time: time,
         change: point,
         finalPoints: user.cashback.points,
@@ -363,7 +367,11 @@ export const donate = (req, res) => {
       // 캐시백 기록에 추가
       user.cashback.history.push({
         name: `${user.donate.category} - 기부`,
-        day: new Date().toLocaleDateString(),
+        day: new Date().toLocaleDateString("ko-KR", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
         time: time,
         change: -amount,
         finalPoints: user.cashback.points,
@@ -374,6 +382,48 @@ export const donate = (req, res) => {
     })
     .then((updatedDonate) => {
       return res.status(200).json(updatedDonate);
+    })
+    .catch((error) => {
+      console.error(error);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: error.message });
+      }
+    });
+};
+
+// 🚀 목표 금액 달성 시 기부 정보 초기화 및 badges 업데이트(put) - body로 name 입력 받음
+export const completeDonation = (req, res) => {
+  const { name } = req.body;
+
+  User.findOne({ name: name })
+    .populate("donate")
+    .then((user) => {
+      if (!user) {
+        return res.status(404).json({ error: "해당 유저가 존재하지 않습니다." });
+      }
+
+      const { donate } = user;
+
+      if (donate.category === "none") {
+        return res.status(404).json({ error: "목표 기부 카테고리를 설정하지 않았습니다." });
+      }
+
+      // 목표 금액을 채웠는지 확인
+      if (donate.currentAmount === donate.targetAmount) {
+        donate.totalAmount += donate.currentAmount; // 누적 기부 금액 업데이트
+        donate.badges.push(donate.category); // 기부 뱃지 추가
+
+        // 목표 금액, 현재 기부 금액, 기부 카테고리 초기화
+        donate.targetAmount = 0;
+        donate.currentAmount = 0;
+        donate.category = "none"; // 기부 카테고리 초기화
+
+        return donate.save().then(() => {
+          return res.status(200).json({ message: "기부 목표가 달성되었습니다.", donate });
+        });
+      } else {
+        return res.status(400).json({ error: "목표 금액이 아직 채워지지 않았습니다." });
+      }
     })
     .catch((error) => {
       console.error(error);

@@ -15,6 +15,7 @@ const InterestETFSchema = new mongoose.Schema({
 
 const InvestSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  category: { type: [String], default: [] }, // 관심 투자 카테고리
   ownedETFs: {
     type: [ETFSchema],
     default: [], // 기본값 설정
