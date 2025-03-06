@@ -18,7 +18,7 @@ userRouter.route("/addStamp").post(addCashbackStamp); // 스탬프 찍기
 userRouter.route("/resetStatus").put(resetCashbackStatus); // 캐시백 영역 초기화
 userRouter.route("/resetStamp").put(resetCashbackStamps); // 스탬프 배열 초기화
 
-userRouter.route("/setPoint").post(setCashbackPoint); // 캐시백 포인트 증가/감소
+userRouter.route("/setPoint").post(setCashbackPoint); // 캐시백 포인트 적립/사용
 userRouter.route("/getPointInfo/:name").get(getCashbackInfo); // 특정 유저의 캐시백 정보
 
 export default userRouter;
