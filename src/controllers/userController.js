@@ -22,7 +22,6 @@ export const getUserData = (req, res) => {
         name: user.name,
         cashbackStatus: user.cashbackStatus,
         cashbackStamps: user.cashbackStamps,
-        // 추가된 데이터
         cashback: user.cashback, // populate된 cashback 데이터
         donate: user.donate, // populate된 donate 데이터
         invest: user.invest, // populate된 invest 데이터
@@ -258,12 +257,12 @@ export const getDonationInfo = (req, res) => {
       }
 
       // 기부 정보가 없을 경우
-      if (!user.donate || user.donate.category === "none") {
-        return res.status(404).json({ error: "기부 정보가 설정되어 있지 않습니다." });
-      }
+      // if (!user.donate || user.donate.category === "none") {
+      //   return res.status(404).json({ error: "기부 정보가 설정되어 있지 않습니다." });
+      // }
 
       const donationInfo = {
-        badges: user.donate.badges,
+        history: user.donate.history,
         category: user.donate.category,
         targetAmount: user.donate.targetAmount,
         currentAmount: user.donate.currentAmount,
@@ -412,7 +411,6 @@ export const completeDonation = (req, res) => {
       // 목표 금액을 채웠는지 확인
       if (donate.currentAmount === donate.targetAmount) {
         donate.totalAmount += donate.currentAmount; // 누적 기부 금액 업데이트
-        donate.badges.push(donate.category); // 기부 뱃지 추가
 
         const donateInfo = {
           username: user.name,
@@ -425,14 +423,17 @@ export const completeDonation = (req, res) => {
           }),
           animation: getAnimation(donate.category),
         };
+        donate.history.push({ badge: donate.category, donateInfo });
 
         // 목표 금액, 현재 기부 금액, 기부 카테고리 초기화
         donate.targetAmount = 0;
         donate.currentAmount = 0;
         donate.category = "none"; // 기부 카테고리 초기화
 
+        const responseData = donate.history;
+
         return donate.save().then(() => {
-          return res.status(200).json({ message: "기부 목표가 달성되었습니다.", donateInfo });
+          return res.status(200).json({ message: "기부 목표가 달성되었습니다.", responseData });
         });
       } else {
         return res.status(400).json({ error: "목표 금액이 아직 채워지지 않았습니다." });
