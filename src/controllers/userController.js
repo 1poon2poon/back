@@ -2,6 +2,7 @@ import User from "../models/User.js";
 import Cashback from "../models/Cashback.js";
 import Donate from "../models/Donate.js";
 import Invest from "../models/Invest.js";
+import { getAnimation, getContent } from "../data/donateContent.js";
 
 // 🚀 유저 조회(get) - params로 name 입력받음
 export const getUserData = (req, res) => {
@@ -413,13 +414,25 @@ export const completeDonation = (req, res) => {
         donate.totalAmount += donate.currentAmount; // 누적 기부 금액 업데이트
         donate.badges.push(donate.category); // 기부 뱃지 추가
 
+        const donateInfo = {
+          username: user.name,
+          donateAmount: donate.targetAmount,
+          content: getContent(donate.category),
+          day: new Date().toLocaleDateString("ko-KR", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          }),
+          animation: getAnimation(donate.category),
+        };
+
         // 목표 금액, 현재 기부 금액, 기부 카테고리 초기화
         donate.targetAmount = 0;
         donate.currentAmount = 0;
         donate.category = "none"; // 기부 카테고리 초기화
 
         return donate.save().then(() => {
-          return res.status(200).json({ message: "기부 목표가 달성되었습니다.", donate });
+          return res.status(200).json({ message: "기부 목표가 달성되었습니다.", donateInfo });
         });
       } else {
         return res.status(400).json({ error: "목표 금액이 아직 채워지지 않았습니다." });
