@@ -9,25 +9,25 @@ export const getContent = (category) => {
     case "의료 건강":
       return "사랑과 정성을 담아 보내주신 기부금은<br/>환자들의 치료와 건강한 삶을 위해 사용됩니다.<br/>더 나은 의료 환경을 만들기 위한<br/>귀한 나눔에 깊이 감사드리며<br/>이 증서를 드립니다.";
     case "국제 구호":
-      return "소중한 기부금은 재난과 전쟁으로 고통받는 이들에게 도움의 손길이 됩니다. 더 나은 세상을 위한 따뜻한 연대에 깊이 감사드리며, 존경의 마음을 담아 이 증서를 드립니다.";
+      return "소중한 기부금은 재난과 전쟁으로<br/>고통받는 이들에게 도움의 손길이 됩니다.<br/>더 나은 세상을 위한 따뜻한 연대에<br/>깊이 감사드리며, 존경의 마음을 담아<br/>이 증서를 드립니다.";
     case "공익 인권":
-      return "귀하의 기부는 평등하고 공정한 사회를 위한 소중한 밑거름이 됩니다. 인권과 정의를 지키는 귀한 나눔에 깊은 감사를 담아 이 증서를 드립니다.";
+      return "귀하의 기부는 평등하고 공정한 사회를 위한<br/>소중한 밑거름이 됩니다.<br/>인권과 정의를 지키는 귀한 나눔에<br/>깊은 감사를 담아 이 증서를 드립니다.";
   }
 };
 
 export const getAnimation = (category) => {
   switch (category) {
     case "사회 복지":
-      return "paper";
-    case "교육 문화":
-      return "feather";
-    case "환경 동물 보호":
-      return "wave";
-    case "의료 건강":
-      return "dog";
-    case "국제 구호":
-      return "beat";
-    case "공익 인권":
       return "cloud";
+    case "교육 문화":
+      return "paper";
+    case "환경 동물 보호":
+      return "dog";
+    case "의료 건강":
+      return "beat";
+    case "국제 구호":
+      return "wave";
+    case "공익 인권":
+      return "feather";
   }
 };
