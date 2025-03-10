@@ -4,7 +4,7 @@ import {
   donate,
   getDonationInfo,
   setDonationGoal,
-} from "../controllers/userController.js";
+} from "../controllers/donateController.js";
 
 const donateRouter = express.Router();
 

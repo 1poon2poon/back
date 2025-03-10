@@ -18,11 +18,11 @@ const InvestSchema = new mongoose.Schema({
   category: { type: [String], default: [] }, // 관심 투자 카테고리
   ownedETFs: {
     type: [ETFSchema],
-    default: [], // 기본값 설정
+    default: [],
   }, // 보유 ETF
   interestedETFs: {
     type: [InterestETFSchema],
-    default: [], // 기본값 설정
+    default: [],
   }, // 관심 ETF
 });
 

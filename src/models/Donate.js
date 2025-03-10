@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { mongo } from "mongoose";
 
 const donateSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -6,6 +6,7 @@ const donateSchema = new mongoose.Schema({
   targetAmount: { type: Number, default: 0 }, // 목표 기부 금액
   currentAmount: { type: Number, default: 0 }, // 현재 기부 금액
   category: {
+    // 기부 카테고리
     type: String,
     enum: [
       "none",
@@ -35,7 +36,7 @@ const donateSchema = new mongoose.Schema({
       },
     ],
     default: [],
-  },
+  }, // 기부 내역
 });
 
 const Donate = mongoose.model("Donate", donateSchema);

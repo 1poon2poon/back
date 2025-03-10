@@ -1,9 +1,7 @@
 import axios from "axios";
 import User from "../models/User.js";
-import Cashback from "../models/Cashback.js";
-import Invest from "../models/Invest.js";
 
-// 특정 카테고리에 대한 etf 데이터 불러오기 - symbol(tech, finance, healthcare, esg, reit, consumer) params로 입력 받음
+// 🚀 특정 카테고리에 대한 etf 데이터 불러오기 - symbol(tech, finance, healthcare, esg, reit, consumer) params로 입력 받음
 export const getEtfData = async (req, res) => {
   const { symbol } = req.params;
 
@@ -30,7 +28,7 @@ export const getEtfData = async (req, res) => {
   }
 };
 
-// ETF 구매하기(post) - body로 name, etfName, price, changeRate, quantity 입력 받음
+// 🚀 ETF 구매하기(post) - body로 name, etfName, price, changeRate, quantity 입력 받음
 export const purchaseETF = (req, res) => {
   const { name, etfName, price, changeRate, quantity } = req.body;
 
@@ -42,7 +40,12 @@ export const purchaseETF = (req, res) => {
   }
 
   User.findOne({ name: name })
-    .populate("cashback")
+    .populate({
+      path: "cashback",
+      populate: {
+        path: "history",
+      },
+    })
     .populate("invest")
     .then((user) => {
       if (!user) {
@@ -74,8 +77,9 @@ export const purchaseETF = (req, res) => {
         minute: "2-digit",
         hour12: false,
       });
+
       // 캐시백 기록에 추가
-      user.cashback.history.push({
+      user.cashback.history.pointHistory.push({
         name: `${etfName} 구매`,
         day: new Date().toLocaleDateString("ko-KR", {
           year: "numeric",
@@ -88,10 +92,15 @@ export const purchaseETF = (req, res) => {
       });
 
       user.cashback.save();
+      user.cashback.history.save();
       return user.invest.save();
     })
     .then((updatedInvest) => {
-      return res.status(200).json(updatedInvest);
+      console.log(updatedInvest);
+
+      return res
+        .status(200)
+        .json({ message: "성공적으로 구매하였습니다.", ownedETFs: [...updatedInvest.ownedETFs] });
     })
     .catch((error) => {
       console.error(error);
@@ -101,7 +110,7 @@ export const purchaseETF = (req, res) => {
     });
 };
 
-// ETF 판매하기(post) - body로 name, etfName, quantity 입력 받음
+// 🚀 ETF 판매하기(post) - body로 name, etfName, quantity 입력 받음
 export const sellETF = (req, res) => {
   const { name, etfName, quantity } = req.body;
 
@@ -113,7 +122,12 @@ export const sellETF = (req, res) => {
   }
 
   User.findOne({ name: name })
-    .populate("cashback")
+    .populate({
+      path: "cashback",
+      populate: {
+        path: "history",
+      },
+    })
     .populate("invest")
     .then((user) => {
       if (!user) {
@@ -140,7 +154,7 @@ export const sellETF = (req, res) => {
       }
 
       // 판매 금액 계산
-      const totalSaleAmount = existingETF.price * quantity; // TODO: 실시간 가격으로 수정해야됨
+      const totalSaleAmount = existingETF.price * quantity;
 
       // 캐시백 포인트에 판매 금액 추가
       user.cashback.points += totalSaleAmount;
@@ -151,7 +165,7 @@ export const sellETF = (req, res) => {
         minute: "2-digit",
         hour12: false,
       });
-      user.cashback.history.push({
+      user.cashback.history.pointHistory.push({
         name: `${etfName} 판매`,
         day: new Date().toLocaleDateString("ko-KR", {
           year: "numeric",
@@ -163,7 +177,7 @@ export const sellETF = (req, res) => {
         finalPoints: user.cashback.points,
       });
 
-      return Promise.all([user.cashback.save(), user.invest.save()]);
+      return Promise.all([user.cashback.save(), user.cashback.history.save(), user.invest.save()]);
     })
     .then(() => {
       return res.status(200).json({ message: "ETF 판매가 완료되었습니다." });
@@ -176,7 +190,7 @@ export const sellETF = (req, res) => {
     });
 };
 
-// 관심 ETF 추가 or 삭제(post) - body로 name, etfName, price, changeRate 입력 받음
+// 🚀 관심 ETF 추가 or 삭제(post) - body로 name, etfName, price, changeRate 입력 받음
 export const setInterestedETF = (req, res) => {
   const { name, etfName, price, changeRate } = req.body;
 
@@ -227,7 +241,7 @@ export const setInterestedETF = (req, res) => {
     });
 };
 
-// 구매한 ETF 조회하기(get) - params로 name 입력 받음
+// 🚀 구매한 ETF 조회하기(get) - params로 name 입력 받음
 export const getPurchasedETFs = (req, res) => {
   const { name } = req.params;
 
@@ -250,7 +264,7 @@ export const getPurchasedETFs = (req, res) => {
     });
 };
 
-// 관심 ETF 조회하기(get) - params로 name 입력 받음
+// 🚀 관심 ETF 조회하기(get) - params로 name 입력 받음
 export const getInterestedETFs = (req, res) => {
   const { name } = req.params;
 
@@ -273,7 +287,7 @@ export const getInterestedETFs = (req, res) => {
     });
 };
 
-// 관심 투자 카테고리 추가 or 삭제(post) - body로 name, categories 입력 받음
+// 🚀 관심 투자 카테고리 추가 or 삭제(post) - body로 name, categories 입력 받음
 export const setInterestedCategory = (req, res) => {
   const { name, categories } = req.body; // categories는 배열로 입력받음
 
@@ -293,8 +307,13 @@ export const setInterestedCategory = (req, res) => {
 
       user.invest.category = categories;
 
-      return user.invest.save().then(() => {
-        return res.status(200).json({ message: "관심 카테고리 목록이 업데이트되었습니다." });
+      return user.invest.save().then((updatedInvest) => {
+        return res
+          .status(200)
+          .json({
+            message: "관심 카테고리 목록이 업데이트되었습니다.",
+            category: updatedInvest.category,
+          });
       });
     })
     .catch((error) => {
