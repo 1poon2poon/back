@@ -3,21 +3,7 @@ import Cashback from "../models/Cashback.js";
 import Donate from "../models/Donate.js";
 import Invest from "../models/Invest.js";
 import History from "../models/History.js";
-import fetchRate from "../data/exchangeRate.js";
-
-// 🔗 뱅커스 라운딩 메소드
-function bankersRound(value, decimals = 2) {
-  const factor = Math.pow(10, decimals);
-  const scaledValue = value * factor;
-  const roundedValue = Math.round(scaledValue);
-
-  // 소수점 이하 .5일 때 짝수 쪽으로 반올림
-  if (Math.abs(scaledValue - roundedValue) === 0.5) {
-    return (Math.floor(roundedValue / 2) * 2) / factor;
-  }
-
-  return roundedValue / factor;
-}
+import { fetchRate, bankersRound } from "../data/exchangeRate.js";
 
 // 🚀 유저 생성 (POST)
 export const postUserData = async (req, res) => {
@@ -271,7 +257,8 @@ export const getCashbackInfo = (req, res) => {
       const cashbackInfo = {
         points: user.cashback.points,
         dollars: user.cashback.dollars,
-        history: user.cashback.history.pointHistory,
+        pointHistory: user.cashback.history.pointHistory,
+        dollarHistory: user.cashback.history.dollarHistory,
       };
 
       return res.status(200).json(cashbackInfo);
@@ -305,6 +292,7 @@ export const exchange = async (req, res) => {
       return res.status(500).json({ error: "환율 정보를 가져오는 데 실패했습니다." });
     }
 
+    let exchangedAmount = 0; // 변환된 금액을 저장할 변수
     if (direction === "points") {
       // 환전하려는 달러보다 보유 달러가 적을 때
       if (amount > user.cashback.dollars) {
@@ -312,7 +300,7 @@ export const exchange = async (req, res) => {
       }
 
       // 환전 금액 계산
-      let exchangedAmount = bankersRound(amount * rate, 0);
+      exchangedAmount = bankersRound(amount * rate, 0);
 
       // 유저 포인트 차감 및 환전된 달러 추가
       user.cashback.dollars -= amount;
@@ -327,7 +315,7 @@ export const exchange = async (req, res) => {
       }
 
       // 환전 금액 계산
-      let exchangedAmount = bankersRound(amount / rate);
+      exchangedAmount = bankersRound(amount / rate);
       exchangedAmount = parseFloat(exchangedAmount.toFixed(2));
 
       // 유저 포인트 차감 및 환전된 달러 추가
@@ -345,15 +333,28 @@ export const exchange = async (req, res) => {
       hour12: false,
     });
     user.cashback.history.pointHistory.push({
-      name: "달러 환전",
+      name: direction === "points" ? "포인트 환전" : "달러 환전",
       day: new Date().toLocaleDateString("ko-KR", {
         year: "numeric",
         month: "long",
         day: "numeric",
       }),
       time: time,
-      change: direction === "points" ? amount : -amount,
+      change: direction === "points" ? exchangedAmount : -amount,
       finalPoints: user.cashback.points,
+    });
+
+    // 달러 기록에 추가
+    user.cashback.history.dollarHistory.push({
+      name: direction === "points" ? "포인트 환전" : "달러 환전",
+      day: new Date().toLocaleDateString("ko-KR", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+      time: time,
+      change: direction === "points" ? -amount : exchangedAmount,
+      finalDollars: user.cashback.dollars,
     });
 
     await user.cashback.history.save();

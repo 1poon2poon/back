@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const fetchRate = async () => {
+// 🔗 환율 데이터 가져오기
+export const fetchRate = async () => {
   try {
     const res = await axios.get("https://m.search.naver.com/p/csearch/content/qapirender.nhn", {
       params: {
@@ -24,4 +25,16 @@ const fetchRate = async () => {
   }
 };
 
-export default fetchRate;
+// 🔗 뱅커스 라운딩 메소드
+export const bankersRound = (value, decimals = 2) => {
+  const factor = Math.pow(10, decimals);
+  const scaledValue = value * factor;
+  const roundedValue = Math.round(scaledValue);
+
+  // 소수점 이하 .5일 때 짝수 쪽으로 반올림
+  if (Math.abs(scaledValue - roundedValue) === 0.5) {
+    return (Math.floor(roundedValue / 2) * 2) / factor;
+  }
+
+  return roundedValue / factor;
+};

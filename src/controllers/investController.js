@@ -1,5 +1,6 @@
 import axios from "axios";
 import User from "../models/User.js";
+import { bankersRound } from "../data/exchangeRate.js";
 
 // 🚀 특정 카테고리에 대한 etf 데이터 불러오기 - symbol(tech, finance, healthcare, esg, reit, consumer) params로 입력 받음
 export const getEtfData = async (req, res) => {
@@ -52,8 +53,8 @@ export const purchaseETF = (req, res) => {
         return res.status(404).json({ error: "해당 유저가 존재하지 않습니다." });
       }
 
-      if (price * quantity > user.cashback.points) {
-        return res.status(404).json({ error: "보유 포인트가 부족합니다." });
+      if (price * quantity > user.cashback.dollars) {
+        return res.status(404).json({ error: "보유 달러가 부족합니다." });
       }
 
       // ETF 정보 추가
@@ -71,15 +72,17 @@ export const purchaseETF = (req, res) => {
         });
       }
 
-      user.cashback.points -= price * quantity;
+      user.cashback.dollars -= price * quantity;
+      bankersRound(user.cashback.dollars);
+
       const time = new Date().toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
         hour12: false,
       });
 
-      // 캐시백 기록에 추가
-      user.cashback.history.pointHistory.push({
+      // 달러 사용 기록에 추가
+      user.cashback.history.dollarHistory.push({
         name: `${etfName} 구매`,
         day: new Date().toLocaleDateString("ko-KR", {
           year: "numeric",
@@ -88,7 +91,7 @@ export const purchaseETF = (req, res) => {
         }),
         time: time,
         change: -(price * quantity),
-        finalPoints: user.cashback.points,
+        finalDollars: user.cashback.dollars,
       });
 
       user.cashback.save();
@@ -156,8 +159,9 @@ export const sellETF = (req, res) => {
       // 판매 금액 계산
       const totalSaleAmount = existingETF.price * quantity;
 
-      // 캐시백 포인트에 판매 금액 추가
-      user.cashback.points += totalSaleAmount;
+      // 달러에 판매 금액 추가
+      user.cashback.dollars += totalSaleAmount;
+      bankersRound(user.cashback.dollars);
 
       // 캐시백 기록에 추가
       const time = new Date().toLocaleTimeString([], {
@@ -165,7 +169,7 @@ export const sellETF = (req, res) => {
         minute: "2-digit",
         hour12: false,
       });
-      user.cashback.history.pointHistory.push({
+      user.cashback.history.dollarHistory.push({
         name: `${etfName} 판매`,
         day: new Date().toLocaleDateString("ko-KR", {
           year: "numeric",
@@ -174,7 +178,7 @@ export const sellETF = (req, res) => {
         }),
         time: time,
         change: totalSaleAmount,
-        finalPoints: user.cashback.points,
+        finalDollars: user.cashback.dollars,
       });
 
       return Promise.all([user.cashback.save(), user.cashback.history.save(), user.invest.save()]);
@@ -308,12 +312,10 @@ export const setInterestedCategory = (req, res) => {
       user.invest.category = categories;
 
       return user.invest.save().then((updatedInvest) => {
-        return res
-          .status(200)
-          .json({
-            message: "관심 카테고리 목록이 업데이트되었습니다.",
-            category: updatedInvest.category,
-          });
+        return res.status(200).json({
+          message: "관심 카테고리 목록이 업데이트되었습니다.",
+          category: updatedInvest.category,
+        });
       });
     })
     .catch((error) => {
