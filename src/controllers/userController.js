@@ -3,43 +3,21 @@ import Cashback from "../models/Cashback.js";
 import Donate from "../models/Donate.js";
 import Invest from "../models/Invest.js";
 import History from "../models/History.js";
+import fetchRate from "../data/exchangeRate.js";
 
-// 🚀 유저 조회(get) - params로 name 입력받음
-export const getUserData = (req, res) => {
-  const { name } = req.params;
-  console.log(name);
+// 🔗 뱅커스 라운딩 메소드
+function bankersRound(value, decimals = 2) {
+  const factor = Math.pow(10, decimals);
+  const scaledValue = value * factor;
+  const roundedValue = Math.round(scaledValue);
 
-  User.findOne({ name: name })
-    .populate({
-      path: "cashback", // cashback 데이터 populate
-      populate: {
-        path: "history", // history 데이터 populate
-      },
-    })
-    .populate("donate") // donate 데이터 populate
-    .populate("invest") // invest 데이터 populate
-    .then((user) => {
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
+  // 소수점 이하 .5일 때 짝수 쪽으로 반올림
+  if (Math.abs(scaledValue - roundedValue) === 0.5) {
+    return (Math.floor(roundedValue / 2) * 2) / factor;
+  }
 
-      const responseUser = {
-        name: user.name,
-        cashbackStatus: user.cashbackStatus,
-        cashbackStamps: user.cashbackStamps,
-        cashback: user.cashback, // populate된 cashback 데이터
-        donate: user.donate, // populate된 donate 데이터
-        invest: user.invest, // populate된 invest 데이터
-      };
-      return res.status(200).json(responseUser);
-    })
-    .catch((error) => {
-      console.error(error);
-      if (!res.headersSent) {
-        return res.status(500).json({ error: error.message });
-      }
-    });
-};
+  return roundedValue / factor;
+}
 
 // 🚀 유저 생성 (POST)
 export const postUserData = async (req, res) => {
@@ -71,6 +49,42 @@ export const postUserData = async (req, res) => {
     console.error("유저 생성 오류:", error);
     return res.status(500).json({ error: error.message });
   }
+};
+
+// 🚀 유저 조회(get) - params로 name 입력받음
+export const getUserData = (req, res) => {
+  const { name } = req.params;
+
+  User.findOne({ name: name })
+    .populate({
+      path: "cashback", // cashback 데이터 populate
+      populate: {
+        path: "history", // history 데이터 populate
+      },
+    })
+    .populate("donate") // donate 데이터 populate
+    .populate("invest") // invest 데이터 populate
+    .then((user) => {
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const responseUser = {
+        name: user.name,
+        cashbackStatus: user.cashbackStatus,
+        cashbackStamps: user.cashbackStamps,
+        cashback: user.cashback, // populate된 cashback 데이터
+        donate: user.donate, // populate된 donate 데이터
+        invest: user.invest, // populate된 invest 데이터
+      };
+      return res.status(200).json(responseUser);
+    })
+    .catch((error) => {
+      console.error(error);
+      if (!res.headersSent) {
+        return res.status(500).json({ error: error.message });
+      }
+    });
 };
 
 // 🚀 스탬프 추가(post) - body로 name, value(100,500), stampType(bus,taxi,convenienceStore,movie,fastFood,cafe) 입력 받음
@@ -256,6 +270,7 @@ export const getCashbackInfo = (req, res) => {
 
       const cashbackInfo = {
         points: user.cashback.points,
+        dollars: user.cashback.dollars,
         history: user.cashback.history.pointHistory,
       };
 
@@ -267,4 +282,93 @@ export const getCashbackInfo = (req, res) => {
         return res.status(500).json({ error: error.message });
       }
     });
+};
+
+// 🚀 입력한 포인트만큼 달러로 환전(post) - body로 name, amount, direction 입력 받음
+export const exchange = async (req, res) => {
+  try {
+    const { name, amount, direction } = req.body;
+
+    const user = await User.findOne({ name }).populate({
+      path: "cashback",
+      populate: { path: "history" },
+    });
+
+    // 유저가 존재하지 않을 때
+    if (!user) {
+      return res.status(404).json({ error: "해당 유저가 존재하지 않습니다." });
+    }
+
+    // 환율 정보 가져오기
+    const rate = await fetchRate();
+    if (!rate) {
+      return res.status(500).json({ error: "환율 정보를 가져오는 데 실패했습니다." });
+    }
+
+    if (direction === "points") {
+      // 환전하려는 달러보다 보유 달러가 적을 때
+      if (amount > user.cashback.dollars) {
+        return res.status(404).json({ error: "보유 달러가 부족합니다." });
+      }
+
+      // 환전 금액 계산
+      let exchangedAmount = bankersRound(amount * rate, 0);
+
+      // 유저 포인트 차감 및 환전된 달러 추가
+      user.cashback.dollars -= amount;
+      user.cashback.dollars = bankersRound(user.cashback.dollars);
+
+      user.cashback.points += exchangedAmount;
+      user.cashback.points = bankersRound(user.cashback.points, 0);
+    } else if (direction === "dollars") {
+      // 환전하려는 포인트보다 보유 포인트보다 적을 때
+      if (amount > user.cashback.points) {
+        return res.status(404).json({ error: "보유 포인트가 부족합니다." });
+      }
+
+      // 환전 금액 계산
+      let exchangedAmount = bankersRound(amount / rate);
+      exchangedAmount = parseFloat(exchangedAmount.toFixed(2));
+
+      // 유저 포인트 차감 및 환전된 달러 추가
+      user.cashback.points -= amount;
+      user.cashback.points = bankersRound(user.cashback.points, 0);
+
+      user.cashback.dollars += exchangedAmount;
+      user.cashback.dollars = bankersRound(user.cashback.dollars);
+    }
+
+    // 캐시백 기록에 추가
+    const time = new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    user.cashback.history.pointHistory.push({
+      name: "달러 환전",
+      day: new Date().toLocaleDateString("ko-KR", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+      time: time,
+      change: direction === "points" ? amount : -amount,
+      finalPoints: user.cashback.points,
+    });
+
+    await user.cashback.history.save();
+    await user.cashback.save();
+    await user.save();
+
+    // 클라이언트에게 응답 반환
+    return res.status(200).json({
+      message: "환전 성공",
+      rate: rate,
+      points: user.cashback.points,
+      Dollars: user.cashback.dollars,
+    });
+  } catch (error) {
+    console.error("❌ 환전 중 오류 발생:", error);
+    return res.status(500).json({ error: error.message });
+  }
 };
