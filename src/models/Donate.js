@@ -12,7 +12,7 @@ const donateSchema = new mongoose.Schema({
       "none",
       "사회 복지",
       "교육 문화",
-      "환경 동물 보호",
+      "환경 동물",
       "의료 건강",
       "국제 구호",
       "공익 인권",
@@ -24,7 +24,7 @@ const donateSchema = new mongoose.Schema({
       {
         badge: {
           type: String,
-          enum: ["사회 복지", "교육 문화", "환경 동물 보호", "의료 건강", "국제 구호", "공익 인권"],
+          enum: ["사회 복지", "교육 문화", "환경 동물", "의료 건강", "국제 구호", "공익 인권"],
         },
         donateInfo: {
           username: String,

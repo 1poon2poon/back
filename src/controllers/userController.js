@@ -271,7 +271,7 @@ export const getCashbackInfo = (req, res) => {
     });
 };
 
-// 🚀 입력한 포인트만큼 달러로 환전(post) - body로 name, amount, direction 입력 받음
+// 🚀 환전(post) - body로 name, amount, direction 입력 받음
 export const exchange = async (req, res) => {
   try {
     const { name, amount, direction } = req.body;
