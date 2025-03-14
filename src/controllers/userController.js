@@ -5,10 +5,30 @@ import Invest from "../models/Invest.js";
 import History from "../models/History.js";
 import { fetchRate, bankersRound } from "../data/exchangeRate.js";
 
-// 🚀 유저 생성 (POST)
+// 🚀 로그인 (POST) - body로 name, password 입력 받음
+export const login = async (req, res) => {
+  const { name, password } = req.body;
+
+  const user = await User.findOne({ name: name });
+  if (!user) {
+    return res.status(404).json({ error: "해당 유저가 존재하지 않습니다.", success: false });
+  } else if (user.password !== password) {
+    return res.status(401).json({ error: "비밀번호가 일치하지 않습니다.", success: false });
+  } else {
+    return res.status(200).json({ message: "로그인 성공", success: true });
+  }
+};
+
+// 🚀 유저 생성 (POST) - body로 name, password 입력 받음
 export const postUserData = async (req, res) => {
   try {
     const { ...userData } = req.body;
+
+    // 유저가 이미 존재하는지 확인
+    const existingUser = await User.findOne({ name: userData.name });
+    if (existingUser) {
+      return res.status(400).json({ error: "이미 존재하는 유저 이름입니다." });
+    }
 
     // 유저 생성
     const user = await User.create(userData);

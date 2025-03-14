@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  password: { type: String, required: true },
   cashbackStatus: {
     // 일일 스탬프 적립 상태
     bus: { type: Boolean, default: true },

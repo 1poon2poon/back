@@ -8,11 +8,13 @@ import {
   resetCashbackStatus,
   getCashbackInfo,
   exchange,
+  login,
 } from "../controllers/userController.js";
 
 const userRouter = express.Router();
 
 userRouter.route("/").post(postUserData); // 유저 생성
+userRouter.route("/login").post(login); // 로그인
 userRouter.route("/:name").get(getUserData); // 특정 name의 유저 조회
 
 userRouter.route("/addStamp").post(addCashbackStamp); // 스탬프 찍기
